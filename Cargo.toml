@@ -1,0 +1,16 @@
+[package]
+name = "weather-poc-disintegrate"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/dmrolfs/weather-poc-distintegrate"
+keywords = ["coerce", "actor", "cqrs", "events", "event_sourced"]
+categories = ["actor", "event", "cqrs", "example"]
+
+[[bin]]
+name = "weather_coerce"
+path = "src/main.rs"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

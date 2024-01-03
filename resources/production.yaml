@@ -1,0 +1,8 @@
+application:
+  #  host: 127.0.0.1
+  host: 0.0.0.0
+database:
+  username: neo
+  host: postgres_1632546102
+  password: pixies
+#  require_ssl: true

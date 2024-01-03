@@ -1,0 +1,26 @@
+machine_id: 1
+node_id: 1
+
+http_api:
+  host: 0.0.0.0
+  port: 8000
+  timeout_secs: 120
+  rate_limit:
+    burst_size: 8
+    per_seconds: 0.5
+
+database:
+  host: localhost
+  port: 5432
+  database_name: weather
+  require_ssl: false
+  max_connections: 10
+  max_lifetime_secs: 1800
+  acquire_timeout_secs: 120
+  idle_timeout_secs: 300
+
+registrar: {}
+
+zone: {}
+
+update_locations: {}

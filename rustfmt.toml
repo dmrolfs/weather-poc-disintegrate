@@ -1,0 +1,28 @@
+#unstable_features = true
+edition = "2021"
+
+#blank_lines_upper_bound = 2
+#comment_width = 100
+#condense_wildcard_suffixes = true
+fn_params_layout = "Compressed"
+#fn_single_line = false
+#format_code_in_doc_comments = true
+#format_strings = true
+match_block_trailing_comma = true
+max_width = 100
+#normalize_comments = true
+#normalize_doc_attributes = true
+#reorder_impl_items = true
+#group_imports = "StdExternalCrate"
+#struct_lit_single_line = true
+#trailing_comma = "Vertical"
+use_small_heuristics = "Default"
+use_try_shorthand = true
+use_field_init_shorthand = true
+#wrap_comments = true
+
+# pre-unstable
+chain_width = 75
+single_line_if_else_max_width = 75
+#space_around_attr_eq = false
+struct_lit_width = 50
