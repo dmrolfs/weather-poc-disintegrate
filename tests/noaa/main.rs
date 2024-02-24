@@ -1,17 +1,17 @@
 #[macro_use]
 extern crate tracing;
 
-use claim::*;
+use claims::*;
 use geojson::{FeatureCollection, GeoJson};
 use pretty_assertions::assert_eq;
 use std::collections::HashSet;
-use weather_coerce::model::WeatherAlert;
+use weather_disintegrate::model::WeatherAlert;
 
 #[test]
 fn test_active_alert_deser() -> anyhow::Result<()> {
-    once_cell::sync::Lazy::force(&coerce_cqrs_test::setup_tracing::TEST_TRACING);
-    let main_span = tracing::info_span!("test_active_alert_deser");
-    let _main_span_guard = main_span.enter();
+    // once_cell::sync::Lazy::force(&coerce_cqrs_test::setup_tracing::TEST_TRACING);
+    // let main_span = tracing::info_span!("test_active_alert_deser");
+    // let _main_span_guard = main_span.enter();
 
     info!("current directory:{:?}", std::env::current_dir());
     let active_alerts = assert_ok!(std::fs::read_to_string(

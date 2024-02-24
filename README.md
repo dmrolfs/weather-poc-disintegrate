@@ -1,2 +1,2 @@
-# weather-poc-coerce
-Example reference app built on coerce-rs, coerce-cqrs-rs, and axon.
+# weather-poc-disintegrate
+Example reference app built on disintegrate and axon.

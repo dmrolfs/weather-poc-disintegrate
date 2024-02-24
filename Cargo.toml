@@ -1,10 +1,20 @@
 [package]
-name = "weather-poc-disintegrate"
+name = "weather_disintegrate"
 version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/dmrolfs/weather-poc-distintegrate"
-keywords = ["coerce", "actor", "cqrs", "events", "event_sourced"]
-categories = ["actor", "event", "cqrs", "example"]
+keywords = ["disintegrate", "actor", "cqrs", "events", "event_sourced"]
+
+[lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = "warn"
+rust_2021_compatibility = "warn"
+rust_2021_incompatible_closure_captures = "warn"
+rust_2021_prelude_collisions = "warn"
+
+[lints.clippy]
+cargo = "warn"
+suspicious = "warn"
 
 [[bin]]
 name = "weather_coerce"
@@ -14,3 +24,107 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.80"
+approx = "0.5.1"
+async-trait = "0.1.77"
+axum = { version = "0.7.4", default-features = true, features = ["macros"] }
+bitcode = "0.5.1"
+chrono = "0.4.34"
+clap = { version = "4.5.1", default-features = true, features = ["derive"] }
+config = "0.14.0"
+cuid2 = "0.1.2"
+rust_decimal = { version = "1.34.3", features = ["std", ] }
+rust_decimal_macros = "1.34.2"
+disintegrate = { version = "0.7.2", features = ["macros", "serde-json"] }
+disintegrate-postgres = { version = "0.7.2", features = ["listener"] }
+either = "1.10.0"
+enumflags2 = "0.7.9"
+futures = "0.3.30"
+futures-util = "0.3.30"
+geojson = "0.24.1"
+governor = "0.6.3"
+hyper = "1.1.0"
+iso8601-timestamp = "0.2.17"
+itertools = "0.12.1"
+maplit = "1.0.2"
+multi_index_map = "0.11.0"
+nutype = { version = "0.4.0", features = ["serde", "regex",] }
+once_cell = "1.19.0"
+reqwest = { version = "0.11.24", features = ["json", "rustls-tls"] }
+reqwest-middleware = "0.2.4"
+reqwest-retry = "0.3.0"
+secrecy = "0.8.0"
+serde = { version = "1.0.197", features = ["derive", "rc"] }
+serde_json = "1.0.114"
+serde_yaml = "0.9.32"
+serde_with = { version = "3.6.1", features = ["chrono", "json", "macros"] }
+smol_str = "0.2.1"
+sql_query_builder = "2.1.0"
+strum = "0.26.1"
+strum_macros = "0.26.1"
+settings_loader = { git = "https://github.com/dmrolfs/settings-loader-rs", features = ["database", "http"] }
+tagid = { version = "0.1.3", git = "https://github.com/dmrolfs/tagid-rs", features = ["disintegrate", "envelope", "sqlx"] }
+thiserror = "1.0.57"
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread", "signal"] }
+tokio-stream = "0.1.14"
+tokio-util = { version = "0.7.10", features = ["full"] }
+tower = { version = "0.4.13", features = ["timeout", "limit"] }
+tower_governor = "0.3.2"
+tracing = { version = "0.1.40", default-features = true, features = ["valuable"] }
+tracing-bunyan-formatter = "0.3.9"
+tracing-futures = "0.2.5"
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
+trim-margin = "0.1.0"
+tynm = "0.1.10"
+url = "2.5.0"
+utoipa = { version = "4.2.0", features = ["axum_extras", "chrono", "decimal", "debug"] }
+utoipa-swagger-ui = { version = "6.0.0", features = ["axum", "debug"] }
+validator = { version = "0.16.1", features = ["derive"] }
+valuable = { version = "0.1.0", features = ["derive"] }
+
+[dependencies.sqlx]
+version = "0.7.3"
+features = ["chrono", "runtime-tokio-rustls", "postgres"]
+
+[dependencies.tower-http]
+version = "0.5.1"
+features = [
+    "add-extension",
+    "trace",
+    "timeout",
+    "compression-full",
+    "decompression-full",
+    "request-id",
+    "util",
+]
+
+[dev-dependencies]
+claims = "0.7.1"
+pretty_assertions = "1.4.0"
+serde_test = "1.0.176"
+temp-env = "0.3.6"
+tokio-test = "0.4.3"
+trim-margin = "0.1.0"
+
+# On Windows
+# ```
+# cargo install -f cargo-binutils
+# rustup component add llvm-tools-preview
+# ```
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# On Linux:
+# - Ubuntu, `sudo apt-get install lld clang`
+# - Arch, `sudo pacman -S lld clang` [target.x86_64-unknown-linux-gnu]
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "linker=clang", "-C", "link-arg=-fuse-ld=lld"]
+
+# On MacOS, `brew install michaeleisel/zld/zld`
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/zld"]
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/zld"]
