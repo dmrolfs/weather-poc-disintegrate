@@ -13,8 +13,8 @@ use settings_loader::SettingsLoader;
 pub struct Settings {
     pub http_api: HttpApiSettings,
     pub database: DatabaseSettings,
-    pub registrar: DomainSettings,
-    pub weather: DomainSettings,
+    // pub registrar: DomainSettings,
+    // pub weather: DomainSettings,
     // pub zone: AggregateSettings,
     // pub update_locations: AggregateSettings,
 }

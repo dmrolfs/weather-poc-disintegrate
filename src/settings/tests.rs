@@ -32,8 +32,8 @@ mod loading {
             idle_timeout: Some(Duration::from_secs(300)),
             max_lifetime: Some(Duration::from_secs(1_800)),
         },
-        registrar: DomainSettings::default(),
-        weather: DomainSettings::default(),
+        // registrar: DomainSettings::default(),
+        // weather: DomainSettings::default(),
         // correlation: CorrelationSettings::default(),
     });
 
@@ -57,9 +57,6 @@ mod loading {
             |  max_connections: 10
             |  acquire_timeout_secs: 120
             |  idle_timeout_secs: 300
-            |registrar: {}
-            |zone: {}
-            |update_locations: {}
             |"##
         .trim_margin()
         .unwrap();
@@ -86,8 +83,8 @@ mod loading {
                 idle_timeout: Some(Duration::from_secs(300)),
                 max_lifetime: None,
             },
-            registrar: DomainSettings::default(),
-            weather: DomainSettings::default(),
+            // registrar: DomainSettings::default(),
+            // weather: DomainSettings::default(),
             // correlation: CorrelationSettings { machine_id: 1, node_id: 1 },
         };
 
@@ -146,9 +143,9 @@ mod loading {
 
         temp_env::with_vars(
             vec![
-                ("APP_ENVIRONMENT", None),
-                ("APP__MACHINE_ID", Some("17")),
-                ("APP__NODE_ID", Some("13")),
+                ("APP_ENVIRONMENT", None::<&str>),
+                // ("APP__MACHINE_ID", Some("17")),
+                // ("APP__NODE_ID", Some("13")),
             ],
             || {
                 let actual: Settings = assert_ok!(Settings::load(&options));

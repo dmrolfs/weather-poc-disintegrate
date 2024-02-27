@@ -367,11 +367,16 @@ mod tests {
 
     #[test]
     fn test_weather_update_status_advance() {
+        once_cell::sync::Lazy::force(&crate::setup_tracing::TEST_TRACING);
+        let main_span = info_span!("test_weather_update_status_advance");
+        let _ = main_span.enter();
+
         let otis = LocationZoneCode::new("otis");
         let stella = LocationZoneCode::new("stella");
         let neo = LocationZoneCode::new("neo");
 
         let mut status = WeatherUpdateStatus::new(vec![otis.clone(), stella.clone(), neo.clone()]);
+        status.alerts_reviewed = true;
         assert_eq!(
             status.active_zones(),
             maplit::hashset! { otis.clone(), stella.clone(), neo.clone() }
@@ -401,18 +406,31 @@ mod tests {
             maplit::hashset! { otis.clone(), stella.clone(), neo.clone() }
         );
 
-        let state_otis = status.advance_zone_step(&otis, UpdateStep::Forecast);
-        assert_eq!(state_otis, UpdateWeatherStateDiscriminants::Finished);
+        info!("DMR: start final step...");
+        let state = status.advance_zone_step(&otis, UpdateStep::Forecast);
+        assert_eq!(state, UpdateWeatherStateDiscriminants::Active);
         assert_eq!(
             assert_some!(status.status_for(&otis)),
             LocationUpdateStatus::Succeeded
         );
         assert_eq!(
             status.active_zones(),
-            maplit::hashset! { otis.clone(), stella.clone(), neo.clone() }
+            maplit::hashset! { stella.clone(), neo.clone() }
         );
 
-        assert_eq!(status.succeeded_zones(), maplit::hashset! { otis });
-        assert_eq!(status.active_zones(), maplit::hashset! { stella, neo });
+        assert_eq!(status.succeeded_zones(), maplit::hashset! { otis.clone() });
+        assert_eq!(status.active_zones(), maplit::hashset! { stella.clone(), neo.clone() });
+
+        // bring to completion
+        status.advance_zone_step(&stella, UpdateStep::Forecast);
+        status.advance_zone_step(&stella, UpdateStep::Observation);
+        status.advance_zone_step(&stella, UpdateStep::Alert);
+        assert_eq!(status.succeeded_zones(), maplit::hashset! { otis.clone(), stella.clone() });
+
+        status.advance_zone_step(&neo, UpdateStep::Alert);
+        status.advance_zone_step(&neo, UpdateStep::Forecast);
+        let state = status.advance_zone_step(&neo, UpdateStep::Observation);
+        assert_eq!(state, UpdateWeatherStateDiscriminants::Finished);
+        assert_eq!(status.succeeded_zones(), maplit::hashset! { otis.clone(), stella.clone(), neo.clone()})
     }
 }
