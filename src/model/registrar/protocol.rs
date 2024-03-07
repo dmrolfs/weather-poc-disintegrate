@@ -96,3 +96,56 @@ impl Decision for ClearZoneMonitoring {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing;
+    use claims::assert_matches;
+    use once_cell::sync::Lazy;
+    use RegistrarEvent as E;
+
+    static OTIS: Lazy<LocationZoneCode> = Lazy::new(|| LocationZoneCode::new("otis"));
+    static STELLA: Lazy<LocationZoneCode> = Lazy::new(|| LocationZoneCode::new("stella"));
+    static NEO: Lazy<LocationZoneCode> = Lazy::new(|| LocationZoneCode::new("neo"));
+
+    #[test]
+    fn it_adds_zone_to_monitor() {
+        testing::TestHarness::given([])
+            .when(MonitorForecastZone::new(OTIS.clone()))
+            .then([E::ForecastZoneAdded { zone: OTIS.clone() }]);
+    }
+
+    #[test]
+    fn it_should_not_add_zone_that_is_already_monitored() {
+        let err = testing::TestHarness::given([E::ForecastZoneAdded { zone: OTIS.clone() }])
+            .when(MonitorForecastZone::new(OTIS.clone()))
+            .then_err();
+        assert_matches!(err, RegistrarError::LocationZoneAlreadyMonitored(zone) if zone == OTIS.clone());
+    }
+
+    #[test]
+    fn it_removes_zone_from_monitoring() {
+        testing::TestHarness::given([E::ForecastZoneAdded { zone: OTIS.clone() }])
+            .when(IgnoreForecastZone::new(OTIS.clone()))
+            .then([E::ForecastZoneRemoved { zone: OTIS.clone() }]);
+    }
+
+    #[test]
+    fn it_should_ignore_request_to_remove_zone_that_is_not_monitored() {
+        testing::TestHarness::given([E::ForecastZoneAdded { zone: OTIS.clone() }])
+            .when(IgnoreForecastZone::new(STELLA.clone()))
+            .then([]);
+    }
+
+    #[test]
+    fn it_should_clear_all_zone_monitoring() {
+        testing::TestHarness::given([
+            E::ForecastZoneAdded { zone: OTIS.clone() },
+            E::ForecastZoneAdded { zone: STELLA.clone() },
+            E::ForecastZoneAdded { zone: NEO.clone() },
+        ])
+        .when(ClearZoneMonitoring)
+        .then([E::AllForecastZonesRemoved])
+    }
+}

@@ -107,14 +107,16 @@ mod errors {
 
 mod support {
     use super::errors::LocationZoneError;
-    use super::services::{LocationZoneServices, LocationZoneServicesRef};
+    use super::services::{self, LocationZoneServices, LocationZoneServicesRef};
     use crate::model::weather::zone::read_model::WeatherRepository;
     use crate::model::weather::WeatherEventStore;
     use crate::services::noaa::NoaaWeatherServices;
+    use anyhow::anyhow;
     use disintegrate_postgres::{PgEventListener, PgEventListenerConfig};
     use sqlx::PgPool;
     use std::sync::Arc;
     use std::time::Duration;
+    use tokio_util::task::TaskTracker;
 
     #[derive(Debug, Clone)]
     pub struct LocationZoneSupport {
@@ -124,8 +126,10 @@ mod support {
     }
 
     impl LocationZoneSupport {
+        #[instrument(level = "debug", skip(es), err)]
         pub async fn new(
             pool: PgPool, es: WeatherEventStore, noaa: NoaaWeatherServices,
+            task_tracker: &TaskTracker,
         ) -> Result<Self, LocationZoneError> {
             // let serde = Json::<LocationZoneEvent>::default();
             // let event_store = PgEventStore::new(pool.clone(), serde).await?;
@@ -134,24 +138,30 @@ mod support {
             //     5,
             // ));
 
-            let services = Arc::new(LocationZoneServices::new(noaa));
+            if let Err(prior) =
+                services::initialize_services(Arc::new(LocationZoneServices::new(noaa)))
+            {
+                warn!("location zone service instance overwritten: {prior:?}");
+            }
 
-            let repo = WeatherRepository::new(pool.clone());
-            let weather_projection = super::read_model::ZoneWeatherProjection::new(pool).await?;
+            let weather_repository = WeatherRepository::new(pool.clone());
 
-            let listener_config = PgEventListenerConfig::poller(Duration::from_millis(50));
-            PgEventListener::builder(es)
-                .register_listener(weather_projection, listener_config)
-                .start_with_shutdown(crate::shutdown())
-                .await?;
+            task_tracker.spawn(async move {
+                let weather_projection =
+                    super::read_model::ZoneWeatherProjection::new(pool).await?;
 
-            Ok(Self::direct(repo, services))
-        }
+                let listener_config = PgEventListenerConfig::poller(Duration::from_millis(50));
+                PgEventListener::builder(es)
+                    .register_listener(weather_projection, listener_config)
+                    .start_with_shutdown(crate::shutdown())
+                    .await
+                    .map_err(|e| {
+                        anyhow!("weather projection event listener exited with error: {e}")
+                    })?;
+                Ok::<(), anyhow::Error>(())
+            });
 
-        pub fn direct(
-            weather_repository: WeatherRepository, services: LocationZoneServicesRef,
-        ) -> Self {
-            Self { weather_repository, services }
+            Ok(Self { weather_repository, services: services::services() })
         }
     }
 }

@@ -1,5 +1,7 @@
 use crate::model::registrar::support::RegistrarSupport;
-use crate::model::registrar::{MonitoredLocationZonesRef, RegistrarDecisionMakerRef};
+use crate::model::registrar::{
+    MonitoredLocationZonesRef, RegistrarDecisionMakerRef, RegistrarEventSerde,
+};
 use crate::model::weather::update::{
     UpdateWeatherRepository, UpdateWeatherServices, UpdateWeatherServicesRef, UpdateWeatherSupport,
 };
@@ -15,6 +17,7 @@ use sqlx::PgPool;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio_util::task::TaskTracker;
 use url::Url;
 
 #[derive(Clone)]
@@ -82,39 +85,69 @@ impl FromRef<AppState> for PgPool {
 
 impl AppState {
     #[instrument(level = "debug", skip(settings), err)]
-    pub async fn new(settings: &Settings) -> Result<AppState, ApiBootstrapError> {
+    pub async fn new(
+        settings: &Settings, task_tracker: &TaskTracker,
+    ) -> Result<AppState, ApiBootstrapError> {
         info!(?settings, "creating application state");
         let db_pool = get_connection_pool(&settings.database);
+        warn!("DMR - AAA");
 
         //todo: WORK TO CONSOLIDATE IN MOD SUPPORTS
         // -- Weather Core --
-        let weather_es = PgEventStore::new(db_pool.clone(), WeatherEventSerde::default()).await?;
+        let registrar_event_store =
+            PgEventStore::new(db_pool.clone(), RegistrarEventSerde::default()).await?;
+        warn!("DMR - BBB");
+        let weather_event_store =
+            PgEventStore::new(db_pool.clone(), WeatherEventSerde::default()).await?;
+        warn!("DMR - CCC");
 
         let user_agent = reqwest::header::HeaderValue::from_str("(here.com, contact@example.com)")?;
+        warn!("DMR - DDD");
         let base_url = Url::from_str("https://api.weather.gov")?;
+        warn!("DMR - EEE");
         let noaa_api = NoaaWeatherApi::new(base_url, user_agent)?;
+        warn!("DMR - FFF");
         let noaa = NoaaWeatherServices::Noaa(noaa_api);
         let update_weather_services = Arc::new(UpdateWeatherServices::new(noaa.clone()));
+        warn!("DMR - GGG");
         // -- Weather Core --
 
         // -- Registrar --
-        let registrar_support =
-            RegistrarSupport::new(db_pool.clone(), update_weather_services.clone()).await?;
+        let registrar_support = RegistrarSupport::new(
+            registrar_event_store,
+            update_weather_services.clone(),
+            task_tracker,
+        )
+        .await?;
+        warn!("DMR - HHH");
         // -- Registrar --
 
         // -- Weather --
-        let weather_support = WeatherSupport::new(weather_es.clone()).await?;
+        let weather_support = WeatherSupport::new(weather_event_store.clone()).await?;
+        warn!("DMR - III");
         // -- Weather --
 
         // -- Location Zone --
-        let location_zone_support =
-            LocationZoneSupport::new(db_pool.clone(), weather_es.clone(), noaa.clone()).await?;
+        let location_zone_support = LocationZoneSupport::new(
+            db_pool.clone(),
+            weather_event_store.clone(),
+            noaa.clone(),
+            task_tracker,
+        )
+        .await?;
+        warn!("DMR - JJJ");
         // -- Location Zone --
 
         // -- Update Weather --
-        let update_weather_support =
-            UpdateWeatherSupport::new(db_pool.clone(), weather_es, update_weather_services).await?;
-        // -- Update Weather --
+        let update_weather_support = UpdateWeatherSupport::new(
+            db_pool.clone(),
+            weather_event_store,
+            update_weather_services,
+            task_tracker,
+        )
+        .await?;
+        warn!("DMR - KKK");
+        // -- Update WeIIIather --
 
         // let journal_storage_config =
         //     settings::storage_config_from(&settings.database, &settings.zone);

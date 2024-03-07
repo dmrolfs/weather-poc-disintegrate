@@ -2,7 +2,6 @@ use crate::model::registrar::errors::RegistrarError;
 use crate::model::weather::update::{self, UpdateWeatherId, UpdateWeatherServicesRef};
 use crate::model::weather::WeatherDecisionMakerRef;
 use crate::model::LocationZoneCode;
-use once_cell::sync::OnceCell;
 use std::sync::Arc;
 
 pub trait RegistrarApi: Sync + Send {
@@ -57,17 +56,17 @@ impl RegistrarApi for RegistrarServices {
     }
 }
 
-static SERVICES: OnceCell<RegistrarServicesRef> = OnceCell::new();
+// static SERVICES: OnceCell<RegistrarServicesRef> = OnceCell::new();
 
 /// Initializes the `RegistrarServices` used by the Registrar actor. This may be initialized
 /// once, and will return the supplied value in an Err (i.e., `Err(services)`) on subsequent calls.
-pub fn initialize_services(services: RegistrarServicesRef) -> Result<(), RegistrarServicesRef> {
-    SERVICES.set(services)
-}
+// pub fn initialize_services(services: RegistrarServicesRef) -> Result<(), RegistrarServicesRef> {
+//     SERVICES.set(services)
+// }
 
-pub fn services() -> RegistrarServicesRef {
-    SERVICES.get().expect("RegistrarServices are not initialized").clone()
-}
+// pub fn services() -> RegistrarServicesRef {
+//     SERVICES.get().expect("RegistrarServices are not initialized").clone()
+// }
 
 #[derive(Debug, Clone)]
 pub struct FullRegistrarServices {

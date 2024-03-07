@@ -37,7 +37,7 @@ static COLUMNS: Lazy<[TableColumn; 5]> = Lazy::new(|| {
 });
 static COLUMNS_REP: Lazy<String> = Lazy::new(|| COLUMNS.join(", "));
 static VALUES_REP: Lazy<String> = Lazy::new(|| {
-    let values = (1..=COLUMNS_REP.len())
+    let values = (1..=COLUMNS.len())
         .map(|i| format!("${i}"))
         .collect::<Vec<_>>()
         .join(", ");
@@ -204,6 +204,7 @@ impl EventListener<LocationZoneEvent> for ZoneWeatherProjection {
 // });
 
 impl ZoneWeatherProjection {
+    #[instrument(level="debug", ret)]
     fn build_insert(update_clause: sql::Update) -> String {
         let conflict_clause = format!(
             "( {key} ) DO UPDATE {update_clause}",
@@ -224,6 +225,7 @@ impl ZoneWeatherProjection {
             .to_string()
     }
 
+    #[instrument(level="debug", skip(weather, tx), ret, err)]
     async fn update_or_insert_weather(
         zone: LocationZoneCode, weather: Arc<WeatherFrame>, tx: &mut PgConnection,
     ) -> Result<PgQueryResult, LocationZoneError> {
@@ -234,6 +236,8 @@ impl ZoneWeatherProjection {
                     .set("current = EXCLUDED.current, last_updated_at = EXCLUDED.last_updated_at"),
             )
         });
+
+        debug!("sql: {sql}");
 
         sqlx::query(sql)
             .bind(zone) // zone
@@ -246,6 +250,7 @@ impl ZoneWeatherProjection {
             .map_err(|err| err.into())
     }
 
+    #[instrument(level="debug", skip(forecast, tx), ret, err)]
     async fn update_or_insert_forecast(
         zone: LocationZoneCode, forecast: Arc<ZoneForecast>, tx: &mut PgConnection,
     ) -> Result<PgQueryResult, LocationZoneError> {
@@ -257,9 +262,11 @@ impl ZoneWeatherProjection {
                 ))
             });
 
+        debug!("sql: {sql}");
+
         sqlx::query(sql)
             .bind(zone) // zone
-            .bind(None::<serde_json::Value>) // weather
+            .bind(None::<serde_json::Value>) // current
             .bind(Some(serde_json::to_value(forecast)?)) // forecast
             .bind(None::<serde_json::Value>) // alert
             .bind(Utc::now()) // last_updated_at
@@ -268,6 +275,7 @@ impl ZoneWeatherProjection {
             .map_err(|err| err.into())
     }
 
+    #[instrument(level="debug", skip(alert, tx), ret, err)]
     async fn update_or_insert_alert(
         zone: LocationZoneCode, alert: Option<Arc<WeatherAlert>>, tx: &mut PgConnection,
     ) -> Result<PgQueryResult, LocationZoneError> {
@@ -278,6 +286,8 @@ impl ZoneWeatherProjection {
                     .set("alert = EXCLUDED.alert, last_updated_at = EXCLUDED.last_updated_at"),
             )
         });
+
+        debug!("sql: {sql}");
 
         let query = sqlx::query(sql)
             .bind(zone) // zone

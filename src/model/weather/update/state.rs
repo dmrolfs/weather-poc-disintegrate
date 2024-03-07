@@ -419,18 +419,27 @@ mod tests {
         );
 
         assert_eq!(status.succeeded_zones(), maplit::hashset! { otis.clone() });
-        assert_eq!(status.active_zones(), maplit::hashset! { stella.clone(), neo.clone() });
+        assert_eq!(
+            status.active_zones(),
+            maplit::hashset! { stella.clone(), neo.clone() }
+        );
 
         // bring to completion
         status.advance_zone_step(&stella, UpdateStep::Forecast);
         status.advance_zone_step(&stella, UpdateStep::Observation);
         status.advance_zone_step(&stella, UpdateStep::Alert);
-        assert_eq!(status.succeeded_zones(), maplit::hashset! { otis.clone(), stella.clone() });
+        assert_eq!(
+            status.succeeded_zones(),
+            maplit::hashset! { otis.clone(), stella.clone() }
+        );
 
         status.advance_zone_step(&neo, UpdateStep::Alert);
         status.advance_zone_step(&neo, UpdateStep::Forecast);
         let state = status.advance_zone_step(&neo, UpdateStep::Observation);
         assert_eq!(state, UpdateWeatherStateDiscriminants::Finished);
-        assert_eq!(status.succeeded_zones(), maplit::hashset! { otis.clone(), stella.clone(), neo.clone()})
+        assert_eq!(
+            status.succeeded_zones(),
+            maplit::hashset! { otis.clone(), stella.clone(), neo.clone()}
+        )
     }
 }

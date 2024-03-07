@@ -17,7 +17,7 @@ cargo = "warn"
 suspicious = "warn"
 
 [[bin]]
-name = "weather_coerce"
+name = "weather_disintegrate"
 path = "src/main.rs"
 
 

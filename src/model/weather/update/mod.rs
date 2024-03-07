@@ -143,10 +143,12 @@ mod support {
     };
     use crate::model::weather::WeatherEventStore;
     use crate::services::noaa::NoaaWeatherServices;
+    use anyhow::anyhow;
     use disintegrate_postgres::{PgEventListener, PgEventListenerConfig};
     use sqlx::PgPool;
     use std::sync::Arc;
     use std::time::Duration;
+    use tokio_util::task::TaskTracker;
 
     #[derive(Debug, Clone)]
     pub struct UpdateWeatherSupport {
@@ -157,21 +159,38 @@ mod support {
     impl UpdateWeatherSupport {
         pub async fn from_noaa(
             pool: PgPool, es: WeatherEventStore, noaa: NoaaWeatherServices,
+            task_tracker: &TaskTracker,
         ) -> Result<Self, UpdateWeatherError> {
-            Self::new(pool, es, Arc::new(UpdateWeatherServices::new(noaa))).await
+            Self::new(
+                pool,
+                es,
+                Arc::new(UpdateWeatherServices::new(noaa)),
+                task_tracker,
+            )
+            .await
         }
 
+        #[instrument(level = "debug", skip(es), err)]
         pub async fn new(
             pool: PgPool, es: WeatherEventStore, services: UpdateWeatherServicesRef,
+            task_tracker: &TaskTracker,
         ) -> Result<Self, UpdateWeatherError> {
             let history_repository = UpdateWeatherRepository::new(pool.clone());
-            let update_history_projection =
-                super::read_model::UpdateWeatherHistoryProjection::new(pool).await?;
-            let listener_config = PgEventListenerConfig::poller(Duration::from_millis(50));
-            PgEventListener::builder(es)
-                .register_listener(update_history_projection, listener_config)
-                .start_with_shutdown(crate::shutdown())
-                .await?;
+
+            task_tracker.spawn(async move {
+                let update_history_projection =
+                    super::read_model::UpdateWeatherHistoryProjection::new(pool).await?;
+                let listener_config = PgEventListenerConfig::poller(Duration::from_millis(50));
+
+                PgEventListener::builder(es)
+                    .register_listener(update_history_projection, listener_config)
+                    .start_with_shutdown(crate::shutdown())
+                    .await
+                    .map_err(|e| {
+                        anyhow!("update history project event listener exited with error: {e}")
+                    })?;
+                Ok::<(), anyhow::Error>(())
+            });
 
             Ok(Self { history_repository, services })
         }

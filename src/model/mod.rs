@@ -4,6 +4,7 @@ mod tracing_processor;
 pub mod weather;
 
 pub use frame::WeatherFrame;
+pub use tracing_processor::TracingProcessor;
 
 use crate::errors::WeatherError;
 use chrono::{DateTime, Utc};

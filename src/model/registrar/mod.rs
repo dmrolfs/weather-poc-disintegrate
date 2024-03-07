@@ -1,7 +1,7 @@
 use crate::model::LocationZoneCode;
 use disintegrate::serde::json::Json;
 use disintegrate::NoSnapshot;
-use disintegrate_postgres::PgDecisionMaker;
+use disintegrate_postgres::{PgDecisionMaker, PgEventStore};
 use std::sync::Arc;
 
 // mod processor;
@@ -10,13 +10,14 @@ mod read_model;
 mod services;
 mod state;
 
+use crate::model::registrar::protocol::RegistrarEvent;
 pub use errors::RegistrarError;
 pub use read_model::{MonitoredLocationZonesRef, MonitoredLocationZonesView};
 pub use services::RegistrarServices;
 
-pub type RegistrarSerde = Json<protocol::RegistrarEvent>;
-pub type RegistrarDecisionMaker =
-    PgDecisionMaker<protocol::RegistrarEvent, RegistrarSerde, NoSnapshot>;
+pub type RegistrarEventSerde = Json<protocol::RegistrarEvent>;
+pub type RegistrarEventStore = PgEventStore<RegistrarEvent, RegistrarEventSerde>;
+pub type RegistrarDecisionMaker = PgDecisionMaker<RegistrarEvent, RegistrarEventSerde, NoSnapshot>;
 pub type RegistrarDecisionMakerRef = Arc<RegistrarDecisionMaker>;
 
 #[instrument(level = "debug", skip(dm), err)]
@@ -83,56 +84,27 @@ mod errors {
 
         #[error("{0}")]
         Postgres(#[from] disintegrate_postgres::Error),
-        // #[error("{0}")]
-        // ActorRef(#[from] coerce::actor::ActorRefErr),
-
-        // #[error("failed to persist: {0}")]
-        // Persist(#[from] coerce::persistent::PersistErr),
-
-        // #[error("failure in postgres storage: {0}")]
-        // PostgresStorage(#[from] coerce_cqrs::postgres::PostgresStorageError),
-
-        // #[error("projection failure: {0}")]
-        // Projection(#[from] coerce_cqrs::projection::ProjectionError),
-
-        // #[error("command rejected: {0}")]
-        // RejectedCommand(String),
     }
-
-    // impl From<coerce::actor::ActorRefErr> for RegistrarFailure {
-    //     fn from(error: coerce::actor::ActorRefErr) -> Self {
-    //         let reg_error: RegistrarError = error.into();
-    //         reg_error.into()
-    //     }
-    // }
-
-    // impl From<coerce::persistent::PersistErr> for RegistrarFailure {
-    //     fn from(error: coerce::persistent::PersistErr) -> Self {
-    //         let reg_error: RegistrarError = error.into();
-    //         reg_error.into()
-    //     }
-    // }
 }
 
 pub mod support {
-    use super::protocol::RegistrarEvent;
     use super::services::RegistrarServicesRef;
     use super::{
-        MonitoredLocationZonesRef, RegistrarDecisionMakerRef, RegistrarError, RegistrarServices,
+        MonitoredLocationZonesRef, RegistrarDecisionMakerRef, RegistrarError, RegistrarEventStore,
+        RegistrarServices,
     };
     use crate::model::weather::update::UpdateWeatherServicesRef;
-    use disintegrate::serde::json::Json;
-    use disintegrate_postgres::{PgEventListener, PgEventListenerConfig, PgEventStore};
-    use sqlx::PgPool;
+    use anyhow::anyhow;
+    use disintegrate_postgres::{PgEventListener, PgEventListenerConfig};
     use std::fmt;
     use std::sync::Arc;
     use std::time::Duration;
+    use tokio_util::task::TaskTracker;
 
     #[derive(Clone)]
     pub struct RegistrarSupport {
         pub decision_maker: RegistrarDecisionMakerRef,
-        // pub zone_decision_maker: ZoneDecisionMaker,
-        // pub update_weather_decision_maker: UpdateWeatherDecisionMaker,
+        pub event_store: RegistrarEventStore,
         pub monitored: MonitoredLocationZonesRef,
         pub services: RegistrarServicesRef,
     }
@@ -146,33 +118,42 @@ pub mod support {
     }
 
     impl RegistrarSupport {
+        #[instrument(level = "debug", skip(event_store), err)]
         pub async fn new(
-            pool: PgPool, update_services: UpdateWeatherServicesRef,
+            event_store: RegistrarEventStore, update_services: UpdateWeatherServicesRef,
+            task_tracker: &TaskTracker,
         ) -> Result<Self, RegistrarError> {
-            let serde = Json::<RegistrarEvent>::default();
-            let event_store = PgEventStore::new(pool, serde).await?;
             let decision_maker =
                 Arc::new(disintegrate_postgres::decision_maker(event_store.clone()));
+            warn!("DMR: RS-AAA");
 
             let services = Arc::new(RegistrarServices::full(update_services));
 
             let monitored = super::read_model::MonitoredLocationZones::default();
+            warn!("DMR: RS-BBB");
 
             // let registrar_processor = Arc::new(registrar::processor::RegistrarProcessor::new());
-            PgEventListener::builder(event_store)
-                .register_listener(
-                    monitored.clone(),
-                    PgEventListenerConfig::poller(Duration::from_millis(50)),
-                )
-                // .register_listener(
-                //     registrar_processor.clone(),
-                //     PgEventListenerConfig::poller(Duration::from_millis(50)),
-                // )
-                .start_with_shutdown(crate::shutdown())
-                .await?;
+            let event_store_0 = event_store.clone();
+            let monitored_0 = monitored.clone();
+
+            task_tracker.spawn(async move {
+                PgEventListener::builder(event_store_0)
+                    .register_listener(
+                        monitored_0,
+                        PgEventListenerConfig::poller(Duration::from_millis(50)),
+                    )
+                    .start_with_shutdown(crate::shutdown())
+                    .await
+                    .map_err(|e| {
+                        anyhow!("registrar zone monitor event listener exited with error: {e}")
+                    })?;
+                Ok::<(), anyhow::Error>(())
+            });
+            warn!("DMR: RS-CCC");
 
             Ok(Self {
                 decision_maker,
+                event_store,
                 monitored: Arc::new(monitored),
                 services,
             })

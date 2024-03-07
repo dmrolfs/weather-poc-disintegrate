@@ -1,24 +1,23 @@
 use crate::model::registrar::protocol::RegistrarEvent;
 use crate::model::LocationZoneCode;
 use disintegrate::{StateMutate, StateQuery};
-use once_cell::sync::OnceCell;
 use smol_str::SmolStr;
 use std::collections::HashSet;
-use tagid::{Entity, Id, IdGenerator, Label};
+use tagid::{Entity, IdGenerator, Label};
 
 // #[cfg(test)]
 // use coerce_cqrs_test::fixtures::aggregate::{Summarizable, Summarize};
 
 // pub type RegistrarAggregate = coerce::actor::LocalActorRef<Registrar>;
 
-pub type RegistrarId = Id<Registrar, SmolStr>;
+// pub type RegistrarId = Id<Registrar, SmolStr>;
 
-static SINGLETON_ID: OnceCell<RegistrarId> = OnceCell::new();
+// static SINGLETON_ID: OnceCell<RegistrarId> = OnceCell::new();
 
-#[inline]
-pub fn singleton_id() -> &'static RegistrarId {
-    SINGLETON_ID.get_or_init(Registrar::next_id)
-}
+// #[inline]
+// pub fn singleton_id() -> &'static RegistrarId {
+//     SINGLETON_ID.get_or_init(Registrar::next_id)
+// }
 
 #[derive(Debug, Clone, Default, StateQuery, Label, Serialize, Deserialize)]
 #[state_query(RegistrarEvent)]

@@ -280,15 +280,15 @@ async fn do_alert_affected_zones(
 
     for zone in affected {
         alerted.push(zone.clone());
-        if let Err(error) = zone::alert(
+        let alert_outcome = zone::alert(
             update_id.clone(),
             zone.clone(),
             Some(alert.clone()),
             weather_dm.clone(),
         )
-        .await
-        {
-            failures.insert(zone, LocationZoneError::Decision(Box::new(error)));
+        .await;
+        if let Err(error) = alert_outcome {
+            failures.insert(zone, error);
         }
     }
 
@@ -303,10 +303,10 @@ async fn do_update_unaffected_zones(
     let mut failures = ZoneUpdateFailures::new();
 
     for zone in unaffected {
-        if let Err(error) =
-            zone::alert(update_id.clone(), zone.clone(), None, weather_dm.clone()).await
-        {
-            failures.insert(zone, LocationZoneError::Decision(Box::new(error)));
+        let alert_outcome =
+            zone::alert(update_id.clone(), zone.clone(), None, weather_dm.clone()).await;
+        if let Err(error) = alert_outcome {
+            failures.insert(zone, error);
         }
     }
 

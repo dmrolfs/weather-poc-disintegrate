@@ -121,17 +121,21 @@ mod support {
     #[derive(Clone)]
     pub struct WeatherSupport {
         pub decision_maker: WeatherDecisionMakerRef,
+        pub event_store: WeatherEventStore,
     }
 
     impl WeatherSupport {
+        #[instrument(level = "debug", skip(es), err)]
         pub async fn new(es: WeatherEventStore) -> Result<Self, WeatherError> {
-            Ok(Self::direct(Arc::new(
-                disintegrate_postgres::decision_maker_with_snapshot(es, 5).await?,
-            )))
+            let dm =
+                Arc::new(disintegrate_postgres::decision_maker_with_snapshot(es.clone(), 5).await?);
+            Ok(Self::direct(dm, es))
         }
 
-        pub fn direct(decision_maker: WeatherDecisionMakerRef) -> Self {
-            Self { decision_maker }
+        pub fn direct(
+            decision_maker: WeatherDecisionMakerRef, event_store: WeatherEventStore,
+        ) -> Self {
+            Self { decision_maker, event_store }
         }
     }
 }

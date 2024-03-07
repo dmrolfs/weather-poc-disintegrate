@@ -1,23 +1,22 @@
 use crate::model::WeatherAlert;
 use crate::services::noaa::{AlertApi, NoaaWeatherError, NoaaWeatherServices};
-use once_cell::sync::OnceCell;
 use std::sync::Arc;
 
 pub type UpdateWeatherServicesRef = Arc<UpdateWeatherServices>;
 
-static SERVICES: OnceCell<UpdateWeatherServicesRef> = OnceCell::new();
+// static SERVICES: OnceCell<UpdateWeatherServicesRef> = OnceCell::new();
 
 /// Initializes the `UpdateLocationServices` used by `UpdateLocations` actors. This may be
 /// initialized once, and will return the supplied value in an Err (i.e., `Err(services)`) on subsequent calls.
-pub fn initialize_services(
-    services: UpdateWeatherServicesRef,
-) -> Result<(), UpdateWeatherServicesRef> {
-    SERVICES.set(services)
-}
+// pub fn initialize_services(
+//     services: UpdateWeatherServicesRef,
+// ) -> Result<(), UpdateWeatherServicesRef> {
+//     SERVICES.set(services)
+// }
 
-pub fn services() -> UpdateWeatherServicesRef {
-    SERVICES.get().expect("UpdateWeatherServices is not initialized").clone()
-}
+// pub fn services() -> UpdateWeatherServicesRef {
+//     SERVICES.get().expect("UpdateWeatherServices is not initialized").clone()
+// }
 
 #[derive(Debug, Clone)]
 pub struct UpdateWeatherServices {

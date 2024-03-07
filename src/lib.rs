@@ -14,7 +14,12 @@ mod services;
 mod settings;
 pub mod setup_tracing;
 
+#[cfg(test)]
+mod testing;
+
 pub use settings::{CliOptions, Settings};
+
+pub type EventListenerProcess = tokio::task::JoinHandle<anyhow::Result<()>>;
 
 pub mod errors {
 
@@ -52,6 +57,6 @@ pub mod errors {
     }
 }
 
-pub(crate) async fn shutdown() {
+pub async fn shutdown() {
     tokio::signal::ctrl_c().await.expect("failed to listen for signal event");
 }

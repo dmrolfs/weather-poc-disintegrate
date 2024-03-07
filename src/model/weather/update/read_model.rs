@@ -76,7 +76,7 @@ static COLUMNS: Lazy<[TableColumn; 4]> = Lazy::new(|| {
 });
 static COLUMNS_REP: Lazy<String> = Lazy::new(|| COLUMNS.join(", "));
 static VALUES_REP: Lazy<String> = Lazy::new(|| {
-    let values = (1..=COLUMNS_REP.len())
+    let values = (1..=COLUMNS.len())
         .map(|i| format!("${i}"))
         .collect::<Vec<_>>()
         .join(", ");
@@ -117,14 +117,6 @@ impl UpdateWeatherRepository {
         // sqlx::query_as(sql).bind(update_id).fetch_optional(&self.pool).await
     }
 }
-
-static STATUS_BY_ID_SQL: Lazy<String> = Lazy::new(|| {
-    sql::Select::new()
-        .select(COLUMNS_REP.as_str())
-        .from(UPDATE_WEATHER_HISTORY_TABLE.as_str())
-        .where_clause(format!("{} = $1", PRIMARY_KEY.as_str()).as_str())
-        .to_string()
-});
 
 // async fn do_fetch_optional_view<'q, 'e, 'c, DB, E>(
 // async fn do_fetch_optional_view<'e, DB, E>(
@@ -333,6 +325,14 @@ impl EventListener<WeatherEvent> for UpdateWeatherHistoryProjection {
         outcome.map_err(|err| err.into())
     }
 }
+
+// static STATUS_BY_ID_SQL: Lazy<String> = Lazy::new(|| {
+//     sql::Select::new()
+//         .select(COLUMNS_REP.as_str())
+//         .from(UPDATE_WEATHER_HISTORY_TABLE.as_str())
+//         .where_clause(format!("{} = $1", PRIMARY_KEY.as_str()).as_str())
+//         .to_string()
+// });
 
 const SELECT_UPDATE_VIEW_SQL: &str = r#"
     SELECT update_id, state, update_statuses, last_updated_at
