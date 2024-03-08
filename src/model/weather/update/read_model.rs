@@ -76,10 +76,7 @@ static COLUMNS: Lazy<[TableColumn; 4]> = Lazy::new(|| {
 });
 static COLUMNS_REP: Lazy<String> = Lazy::new(|| COLUMNS.join(", "));
 static VALUES_REP: Lazy<String> = Lazy::new(|| {
-    let values = (1..=COLUMNS.len())
-        .map(|i| format!("${i}"))
-        .collect::<Vec<_>>()
-        .join(", ");
+    let values = (1..=COLUMNS.len()).map(|i| format!("${i}")).collect::<Vec<_>>().join(", ");
 
     format!("( {values} )")
 });

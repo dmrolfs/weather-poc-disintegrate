@@ -90,6 +90,10 @@ impl LocationZoneCode {
         };
         Ok(code)
     }
+
+    pub fn random() -> Self {
+        Self::new(cuid2::create_id())
+    }
 }
 
 // impl<'q, DB> sqlx::Encode<'q, DB> for LocationZoneCode

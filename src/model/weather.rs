@@ -125,7 +125,7 @@ mod support {
     }
 
     impl WeatherSupport {
-        #[instrument(level = "debug", skip(es), err)]
+        #[instrument(level = "debug", name = "WeatherSupport::new", skip(es), err)]
         pub async fn new(es: WeatherEventStore) -> Result<Self, WeatherError> {
             let dm =
                 Arc::new(disintegrate_postgres::decision_maker_with_snapshot(es.clone(), 5).await?);

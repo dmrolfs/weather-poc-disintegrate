@@ -8,6 +8,7 @@ use disintegrate::{query, EventListener, PersistedEvent, StreamQuery};
 use once_cell::sync::{Lazy, OnceCell};
 use sql_query_builder as sql;
 use sqlx::postgres::PgQueryResult;
+use sqlx::types::Json;
 use sqlx::{PgConnection, PgPool};
 use std::clone::Clone;
 use std::str::FromStr;
@@ -37,10 +38,7 @@ static COLUMNS: Lazy<[TableColumn; 5]> = Lazy::new(|| {
 });
 static COLUMNS_REP: Lazy<String> = Lazy::new(|| COLUMNS.join(", "));
 static VALUES_REP: Lazy<String> = Lazy::new(|| {
-    let values = (1..=COLUMNS.len())
-        .map(|i| format!("${i}"))
-        .collect::<Vec<_>>()
-        .join(", ");
+    let values = (1..=COLUMNS.len()).map(|i| format!("${i}")).collect::<Vec<_>>().join(", ");
 
     format!("( {values} )")
 });
@@ -78,24 +76,34 @@ pub struct ZoneWeather {
 impl<'r, R> sqlx::FromRow<'r, R> for ZoneWeather
 where
     R: sqlx::Row,
+    Json<WeatherFrame>:
+        sqlx::Decode<'r, <R as sqlx::Row>::Database> + sqlx::Type<<R as sqlx::Row>::Database>,
+    Json<ForecastDetail>:
+        sqlx::Decode<'r, <R as sqlx::Row>::Database> + sqlx::Type<<R as sqlx::Row>::Database>,
+    Json<WeatherAlert>:
+        sqlx::Decode<'r, <R as sqlx::Row>::Database> + sqlx::Type<<R as sqlx::Row>::Database>,
     String: sqlx::Decode<'r, <R as sqlx::Row>::Database> + sqlx::Type<<R as sqlx::Row>::Database>,
     DateTime<Utc>:
         sqlx::Decode<'r, <R as sqlx::Row>::Database> + sqlx::Type<<R as sqlx::Row>::Database>,
 {
+    #[instrument(level = "debug", skip(row), ret, err)]
     fn from_row(row: &'r R) -> Result<Self, sqlx::Error> {
         let zone = row.try_get(PRIMARY_KEY.clone())?;
 
-        let current_rep: String = row.try_get(CURRENT_COL.clone())?;
-        let current =
-            serde_json::from_str(&current_rep).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        let current_json = row.try_get::<Option<Json<_>>, _>(CURRENT_COL.clone());
+        debug!("DMR: current_json={current_json:?}");
+        let current = current_json?.map(|c| c.0);
+        // let current = serde_json::from_value(current_json).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
-        let forecast_rep: String = row.try_get(FORECAST_COL.clone())?;
-        let forecast = serde_json::from_str(&forecast_rep)
-            .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        let forecast_json = row.try_get::<Option<Json<_>>, _>(FORECAST_COL.clone());
+        debug!("DMR: forecast_json={forecast_json:?}");
+        let forecast = forecast_json?.map(|f| f.0);
+        // let forecast = serde_json::from_value(forecast_json).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
-        let alert_rep: String = row.try_get(ALERT_COL.clone())?;
-        let alert =
-            serde_json::from_str(&alert_rep).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        let alert_json = row.try_get::<Option<Json<_>>, _>(ALERT_COL.clone());
+        debug!("DMR: alert_json={alert_json:?}");
+        let alert = alert_json?.map(|a| a.0);
+        // let alert = serde_json::from_value(alert_json).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
         let last_updated_at = row.try_get(LAST_UPDATED_AT_COL.clone())?;
 
@@ -204,7 +212,7 @@ impl EventListener<LocationZoneEvent> for ZoneWeatherProjection {
 // });
 
 impl ZoneWeatherProjection {
-    #[instrument(level="debug", ret)]
+    #[instrument(level = "debug", ret)]
     fn build_insert(update_clause: sql::Update) -> String {
         let conflict_clause = format!(
             "( {key} ) DO UPDATE {update_clause}",
@@ -225,7 +233,7 @@ impl ZoneWeatherProjection {
             .to_string()
     }
 
-    #[instrument(level="debug", skip(weather, tx), ret, err)]
+    #[instrument(level = "debug", skip(weather, tx), ret, err)]
     async fn update_or_insert_weather(
         zone: LocationZoneCode, weather: Arc<WeatherFrame>, tx: &mut PgConnection,
     ) -> Result<PgQueryResult, LocationZoneError> {
@@ -250,7 +258,7 @@ impl ZoneWeatherProjection {
             .map_err(|err| err.into())
     }
 
-    #[instrument(level="debug", skip(forecast, tx), ret, err)]
+    #[instrument(level = "debug", skip(forecast, tx), ret, err)]
     async fn update_or_insert_forecast(
         zone: LocationZoneCode, forecast: Arc<ZoneForecast>, tx: &mut PgConnection,
     ) -> Result<PgQueryResult, LocationZoneError> {
@@ -275,7 +283,7 @@ impl ZoneWeatherProjection {
             .map_err(|err| err.into())
     }
 
-    #[instrument(level="debug", skip(alert, tx), ret, err)]
+    #[instrument(level = "debug", skip(alert, tx), ret, err)]
     async fn update_or_insert_alert(
         zone: LocationZoneCode, alert: Option<Arc<WeatherAlert>>, tx: &mut PgConnection,
     ) -> Result<PgQueryResult, LocationZoneError> {

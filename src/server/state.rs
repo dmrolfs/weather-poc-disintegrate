@@ -90,26 +90,19 @@ impl AppState {
     ) -> Result<AppState, ApiBootstrapError> {
         info!(?settings, "creating application state");
         let db_pool = get_connection_pool(&settings.database);
-        warn!("DMR - AAA");
 
         //todo: WORK TO CONSOLIDATE IN MOD SUPPORTS
         // -- Weather Core --
         let registrar_event_store =
             PgEventStore::new(db_pool.clone(), RegistrarEventSerde::default()).await?;
-        warn!("DMR - BBB");
         let weather_event_store =
             PgEventStore::new(db_pool.clone(), WeatherEventSerde::default()).await?;
-        warn!("DMR - CCC");
 
         let user_agent = reqwest::header::HeaderValue::from_str("(here.com, contact@example.com)")?;
-        warn!("DMR - DDD");
         let base_url = Url::from_str("https://api.weather.gov")?;
-        warn!("DMR - EEE");
         let noaa_api = NoaaWeatherApi::new(base_url, user_agent)?;
-        warn!("DMR - FFF");
         let noaa = NoaaWeatherServices::Noaa(noaa_api);
         let update_weather_services = Arc::new(UpdateWeatherServices::new(noaa.clone()));
-        warn!("DMR - GGG");
         // -- Weather Core --
 
         // -- Registrar --
@@ -119,12 +112,10 @@ impl AppState {
             task_tracker,
         )
         .await?;
-        warn!("DMR - HHH");
         // -- Registrar --
 
         // -- Weather --
         let weather_support = WeatherSupport::new(weather_event_store.clone()).await?;
-        warn!("DMR - III");
         // -- Weather --
 
         // -- Location Zone --
@@ -135,7 +126,6 @@ impl AppState {
             task_tracker,
         )
         .await?;
-        warn!("DMR - JJJ");
         // -- Location Zone --
 
         // -- Update Weather --
@@ -146,7 +136,6 @@ impl AppState {
             task_tracker,
         )
         .await?;
-        warn!("DMR - KKK");
         // -- Update WeIIIather --
 
         // let journal_storage_config =

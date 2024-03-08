@@ -62,6 +62,7 @@ impl Decision for NoteForecast {
         LocationZoneForecast::new(self.zone.clone())
     }
 
+    #[instrument(level = "debug", name = "NoteForecast::process", ret, err)]
     fn process(&self, _: &Self::StateQuery) -> Result<Vec<Self::Event>, Self::Error> {
         Ok(vec![WeatherEvent::ForecastUpdated {
             zone: self.zone.clone(),
@@ -95,6 +96,7 @@ impl Decision for NoteAlert {
         LocationZoneAlert::new(self.zone.clone())
     }
 
+    #[instrument(level = "debug", name = "NoteAlert::process", ret, err)]
     fn process(&self, state: &Self::StateQuery) -> Result<Vec<Self::Event>, Self::Error> {
         let event = match (state.active_alert(), &self.alert) {
             (false, Some(alert)) => Some(WeatherEvent::AlertActivated {
@@ -109,6 +111,7 @@ impl Decision for NoteAlert {
             _ => None,
         };
 
-        Ok(event.into_iter().collect())
+        let events: Vec<Self::Event> = event.into_iter().collect();
+        Ok(events)
     }
 }

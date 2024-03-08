@@ -41,7 +41,7 @@ async fn http_server(app_state: AppState, settings: &Settings) -> anyhow::Result
 }
 
 #[tracing::instrument(level = "debug", ret, err)]
-fn load_settings(options: &CliOptions) -> anyhow::Result<weather_disintegrate::Settings> {
+pub fn load_settings(options: &CliOptions) -> anyhow::Result<weather_disintegrate::Settings> {
     let app_environment = std::env::var(CliOptions::env_app_environment()).ok();
     if app_environment.is_none() {
         tracing::info!("No environment configuration override provided.");

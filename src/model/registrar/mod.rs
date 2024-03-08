@@ -118,7 +118,12 @@ pub mod support {
     }
 
     impl RegistrarSupport {
-        #[instrument(level = "debug", skip(event_store), err)]
+        #[instrument(
+            level = "debug",
+            name = "RegistrarSupport::new",
+            skip(event_store),
+            err
+        )]
         pub async fn new(
             event_store: RegistrarEventStore, update_services: UpdateWeatherServicesRef,
             task_tracker: &TaskTracker,

@@ -2,8 +2,8 @@ use super::{LocationZoneCode, WeatherDecisionMakerRef};
 use crate::model::{LocationZoneType, WeatherAlert};
 use crate::services::noaa::ZoneWeatherApi;
 
-mod protocol;
-mod read_model;
+pub mod protocol;
+pub mod read_model;
 mod services;
 mod state;
 
@@ -126,7 +126,7 @@ mod support {
     }
 
     impl LocationZoneSupport {
-        #[instrument(level = "debug", skip(es), err)]
+        #[instrument(level = "debug", name = "LocationZoneSupport::new", skip(es), err)]
         pub async fn new(
             pool: PgPool, es: WeatherEventStore, noaa: NoaaWeatherServices,
             task_tracker: &TaskTracker,

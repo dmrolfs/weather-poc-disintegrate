@@ -16,6 +16,11 @@ use crate::model::weather::update::protocol::{
 };
 use crate::model::weather::{WeatherDecisionMakerRef, WeatherEvent};
 use crate::model::LocationZoneCode;
+use tagid::Entity;
+
+pub fn next_id() -> UpdateWeatherId {
+    state::UpdateWeather::next_id()
+}
 
 #[instrument(level = "debug", skip(weather_dm), ret, err)]
 pub async fn update_weather(
@@ -170,7 +175,7 @@ mod support {
             .await
         }
 
-        #[instrument(level = "debug", skip(es), err)]
+        #[instrument(level = "debug", name = "UpdateWeatherSupport::new", skip(es), err)]
         pub async fn new(
             pool: PgPool, es: WeatherEventStore, services: UpdateWeatherServicesRef,
             task_tracker: &TaskTracker,
