@@ -1,6 +1,6 @@
 use crate::model::weather::zone::LocationZoneError;
 use crate::model::weather::LocationZoneEvent;
-use crate::model::{ForecastDetail, LocationZoneCode, WeatherAlert, WeatherFrame, ZoneForecast};
+use crate::model::{LocationZoneCode, WeatherAlert, WeatherFrame, ZoneForecast};
 use crate::postgres::{TableColumn, TableName, LAST_UPDATED_AT_COL};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -68,7 +68,7 @@ impl WeatherRepository {
 pub struct ZoneWeather {
     pub zone: LocationZoneCode,
     pub current: Option<WeatherFrame>,
-    pub forecast: Option<ForecastDetail>,
+    pub forecast: Option<ZoneForecast>,
     pub alert: Option<WeatherAlert>,
     pub last_updated_at: DateTime<Utc>,
 }
@@ -78,7 +78,7 @@ where
     R: sqlx::Row,
     Json<WeatherFrame>:
         sqlx::Decode<'r, <R as sqlx::Row>::Database> + sqlx::Type<<R as sqlx::Row>::Database>,
-    Json<ForecastDetail>:
+    Json<ZoneForecast>:
         sqlx::Decode<'r, <R as sqlx::Row>::Database> + sqlx::Type<<R as sqlx::Row>::Database>,
     Json<WeatherAlert>:
         sqlx::Decode<'r, <R as sqlx::Row>::Database> + sqlx::Type<<R as sqlx::Row>::Database>,
